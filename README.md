@@ -48,9 +48,9 @@
 
    +	Ejecute y revise la salida por pantalla.
         Cambie el inicio con 'start()' por 'run()'.
-        start() // run()
+        
         ![start() vs. run()](https://raw.githubusercontent.com/Brayandres/ARSW-LAB-01/master/img/Image3.jpg)
 
    +    ¿Cómo cambia la salida? ¿por qué?
 
-## **PARTE 2**
+## **PARTE II**
