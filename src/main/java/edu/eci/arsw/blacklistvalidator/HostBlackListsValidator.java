@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 public class HostBlackListsValidator {
 
     private static final int BLACK_LIST_ALARM_COUNT=5;
-    
+
     /**
      * Check the given host's IP address in all the available black lists,
      * and report it as NOT Trustworthy when such IP was reported in at least
@@ -29,42 +29,76 @@ public class HostBlackListsValidator {
      * @param ipaddress suspicious host's IP address.
      * @return  Blacklists numbers where the given host's IP address was found.
      */
-    public List<Integer> checkHost(String ipaddress){
-        
+    public List<Integer> checkHost(String ipaddress, float N){
+
         LinkedList<Integer> blackListOcurrences=new LinkedList<>();
-        
+
         int ocurrencesCount=0;
-        
+
         HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
-        
+
         int checkedListsCount=0;
-        
+
+        float nServers = skds.getRegisteredServersCount()/N;
+
+        List<CheckSegmentHost> threads = new LinkedList<CheckSegmentHost>();
+
+        if ((nServers % 1) != 0){
+              nServers -= (nServers % 1);
+              threads.add(new CheckSegmentHost((int)(N*nServers)+1,skds.getRegisteredServersCount(), ipaddress));
+        }
+
+        for (int i=0;i<N;i++){
+              threads.add(new CheckSegmentHost((int)((i*nServers)+1),(int)((i+1)*nServers), ipaddress));
+        }
+
+        for (CheckSegmentHost t : threads) {
+            t.start();
+            System.out.println("Ejecutando Thread" + t);
+        }
+
+        for (CheckSegmentHost t : threads) {
+          try {
+                t.join();
+          } catch (Exception e) {
+                e.printStackTrace();
+          }
+            System.out.println("Terminó Thread" + t);
+        }
+
+
+        for (CheckSegmentHost t : threads) {
+            ocurrencesCount += t.getOcurrencesCount();
+            blackListOcurrences.addAll(t.getBlackListOcurrences());
+        }
+
+        /*
         for (int i=0;i<skds.getRegisteredServersCount() && ocurrencesCount<BLACK_LIST_ALARM_COUNT;i++){
             checkedListsCount++;
-            
+
             if (skds.isInBlackListServer(i, ipaddress)){
-                
+
                 blackListOcurrences.add(i);
-                
+
                 ocurrencesCount++;
             }
         }
-        
+        */
         if (ocurrencesCount>=BLACK_LIST_ALARM_COUNT){
             skds.reportAsNotTrustworthy(ipaddress);
         }
         else{
             skds.reportAsTrustworthy(ipaddress);
-        }                
-        
-        LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}", new Object[]{checkedListsCount, skds.getRegisteredServersCount()});
-        
+        }
+
+        //LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}", new Object[]{checkedListsCount, skds.getRegisteredServersCount()});
+
         return blackListOcurrences;
     }
-    
-    
+
+
     private static final Logger LOG = Logger.getLogger(HostBlackListsValidator.class.getName());
-    
-    
-    
+
+
+
 }

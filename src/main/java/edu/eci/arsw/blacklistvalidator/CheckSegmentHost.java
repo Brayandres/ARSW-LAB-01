@@ -7,25 +7,27 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SegmentSearch extends Thread{
+//Ejecutar clase con maven
+//mvn exec:java -D"exec.mainClass"="edu.eci.arsw.blacklistvalidator.CheckSegmentHost"
+
+public class CheckSegmentHost extends Thread{
 
     private static final int BLACK_LIST_ALARM_COUNT=5;
     private int start;
     private int finish;
     private String ipaddress;
-    private static volatile int blackCount;
+    private int ocurrencesCount;
+    private LinkedList<Integer> blackListOcurrences=new LinkedList<>();
 
-    public SegmentSearch(int start, int finish, String ipaddress) {
+    public CheckSegmentHost(int start, int finish, String ipaddress) {
         this.start = start;
         this.finish = finish;
         this.ipaddress = ipaddress;
+        this.ocurrencesCount=0;
     }
 
     @Override
     public void run() {
-        LinkedList<Integer> blackListOcurrences=new LinkedList<>();
-
-        int ocurrencesCount=0;
 
         HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
 
@@ -40,30 +42,33 @@ public class SegmentSearch extends Thread{
 
                 ocurrencesCount++;
 
-
             }
-            System.out.println(i);
+            //System.out.println(i);
         }
-
+        /*
         if (ocurrencesCount>=BLACK_LIST_ALARM_COUNT){
             skds.reportAsNotTrustworthy(ipaddress);
         }
         else{
             skds.reportAsTrustworthy(ipaddress);
-        }
-        blackCount += ocurrencesCount;
-        stop();
+        }*/
     }
 
-    public static int getBlackCount() {
-        return blackCount;
+    public int getOcurrencesCount() {
+        return ocurrencesCount;
     }
 
+    public LinkedList<Integer> getBlackListOcurrences(){
+      return blackListOcurrences;
+    }
+
+    /*
     public static void main(String a[]) throws InterruptedException {
-        SegmentSearch search1= new SegmentSearch(20,50, "200.24.34.55");
-        SegmentSearch search2= new SegmentSearch(500,79000, "200.24.34.55");
+        CheckSegmentHost search1= new CheckSegmentHost(20,50, "200.24.34.55");
+        CheckSegmentHost search2= new CheckSegmentHost(50000,80000, "200.24.34.55");
         search1.run();
         search2.run();
-        System.out.println("The host was found :"+blackCount);
-    }
+        System.out.println("The host was found :"+search1.getOcurrencesCount());
+        System.out.println("The host was found :"+search2.getOcurrencesCount());
+    }*/
 }
