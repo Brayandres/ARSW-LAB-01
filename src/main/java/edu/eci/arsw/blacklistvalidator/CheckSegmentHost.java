@@ -1,74 +1,74 @@
 package edu.eci.arsw.blacklistvalidator;
 
+import java.util.ArrayList;
+
 import edu.eci.arsw.spamkeywordsdatasource.HostBlacklistsDataSourceFacade;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-//Ejecutar clase con maven
-//mvn exec:java -D"exec.mainClass"="edu.eci.arsw.blacklistvalidator.CheckSegmentHost"
-
-public class CheckSegmentHost extends Thread{
-
-    private static final int BLACK_LIST_ALARM_COUNT=5;
+public class CheckSegmentHost implements Runnable{
+	
+	public final Thread ownThread;
+    
     private int start;
     private int finish;
-    private String ipaddress;
-    private int ocurrencesCount;
-    private LinkedList<Integer> blackListOcurrences=new LinkedList<>();
-
-    public CheckSegmentHost(int start, int finish, String ipaddress) {
+    private boolean hasBeenFinalized;
+    private String ipAddress;
+    private HostBlacklistsDataSourceFacade skds;
+    private ArrayList<Integer> blackListOcurrences;
+    
+    private CheckSegmentHost(int start, int finish, String ipAddress) {
+        ownThread = new Thread(this);
         this.start = start;
         this.finish = finish;
-        this.ipaddress = ipaddress;
-        this.ocurrencesCount=0;
+        this.ipAddress = ipAddress;
+        hasBeenFinalized = false;
+        blackListOcurrences = new ArrayList<>();
+        skds = HostBlacklistsDataSourceFacade.getInstance();
+    }
+    
+    public static CheckSegmentHost getInstance(int start, int finish, String ipAddress) {
+    	CheckSegmentHost me = new CheckSegmentHost(start, finish, ipAddress);
+    	me.ownThread.start();
+    	return me;
     }
 
     @Override
     public void run() {
-
-        HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
-
-        int checkedListsCount=0;
-
-        for (int i=start;i<=finish && ocurrencesCount<BLACK_LIST_ALARM_COUNT;i++){
-            checkedListsCount++;
-
-            if (skds.isInBlackListServer(i, ipaddress)){
-
+        for (int i = start; i <= finish; i++){
+            if (skds.isInBlackListServer(i, ipAddress)){
                 blackListOcurrences.add(i);
-
-                ocurrencesCount++;
-
             }
-            //System.out.println(i);
         }
-        /*
-        if (ocurrencesCount>=BLACK_LIST_ALARM_COUNT){
-            skds.reportAsNotTrustworthy(ipaddress);
+        synchronized (this) {
+        	hasBeenFinalized = true;
+        	notify();
         }
-        else{
-            skds.reportAsTrustworthy(ipaddress);
-        }*/
     }
 
-    public int getOcurrencesCount() {
-        return ocurrencesCount;
+    public synchronized int getOcurrencesCount() {
+    	try {
+    		while (!hasBeenFinalized) {
+    			wait();
+    		}
+    	} catch (InterruptedException e) {
+    		System.out.println(ownThread.getName()+" Interrupted...");
+    	}
+        return blackListOcurrences.size();
     }
 
-    public LinkedList<Integer> getBlackListOcurrences(){
-      return blackListOcurrences;
+    public ArrayList<Integer> getBlackListOcurrences(){
+    	try {
+    		while (!hasBeenFinalized) {
+    			wait();
+    		}
+    	} catch (InterruptedException e) {
+    		System.out.println(ownThread.getName()+" Interrupted...");
+    	}
+    	return blackListOcurrences;
     }
 
-    /*
     public static void main(String a[]) throws InterruptedException {
-        CheckSegmentHost search1= new CheckSegmentHost(20,50, "200.24.34.55");
-        CheckSegmentHost search2= new CheckSegmentHost(50000,80000, "200.24.34.55");
-        search1.run();
-        search2.run();
-        System.out.println("The host was found :"+search1.getOcurrencesCount());
-        System.out.println("The host was found :"+search2.getOcurrencesCount());
-    }*/
+        CheckSegmentHost search1 = CheckSegmentHost.getInstance(20, 1000, "200.24.34.55");
+        System.out.println("The host was found : "+search1.getOcurrencesCount()+" times.");
+        System.out.println("The host was found in : "+search1.getBlackListOcurrences());
+    }
 }

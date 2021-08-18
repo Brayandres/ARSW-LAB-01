@@ -15,7 +15,6 @@ public class CountThread implements Runnable {
     private int a;
     private int b;
 
-
     @Override
     public void run() {
         for (int i = a; i <= b; i++){
@@ -27,11 +26,4 @@ public class CountThread implements Runnable {
         this.a = a;
         this.b = b;
     }
-
-    public static void main(String a[]){
-        Thread t = new Thread(new CountThread(1,5));
-        t.start();
-    }
 }
-
-
