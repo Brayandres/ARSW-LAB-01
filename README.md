@@ -204,11 +204,12 @@
     - Host 200.24.34.55
         | # HILOS | TIEMPO |
         |---------|--------|
-        |    1    | 159.142 |
-        |    4    | 41.954  |
-        |    8    | 21.793  |
-        |   50    | 3.669   |
-        |   100   | 1.932   |
+        |    1    |159.142 |
+        |    4    |41.954  |
+        |    8    |21.793  |
+        |   50    |3.669   |
+        |   100   |1.932   |
+	
         ![Gráfico 1](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Gr%C3%A1fico1.jpg?raw=true)
     
     - Host 202.24.34.55
@@ -219,6 +220,7 @@
         |    8    |21.898  |
         |   50    |3.591   |
         |   100   |1.876   |
+	
         ![Gráfico 2](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Gr%C3%A1fico2.jpg?raw=true)
         
     - Host 212.24.24.55
@@ -229,5 +231,6 @@
         |    8    |22.053  |
         |   50    |3.683   |
         |   100   |1.899   |
+	
         ![Gráfico 3](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Gr%C3%A1fico3.jpg?raw=true)
 
