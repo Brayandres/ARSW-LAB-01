@@ -53,6 +53,8 @@
 
    +    ¿Cómo cambia la salida? ¿por qué?
 
+		La salida cambia porque al cambiar de método (es decir, *run()* en vez de *start()*), ya no se está inicializando el hilo, esto es porque el método *start()* 			permite que el hilo se pueda iniciar ya que este es un método de la clase *Thread*, así que cuando se realiza la ejecución con *run()* se hace la ejecución  	secuencialmente y en orden en ves de paralelamente por hilos.
+
 ## **PARTE II**
 1. Cree una clase de tipo Thread que represente el ciclo de vida de un hilo que haga la búsqueda de un segmento del conjunto de servidores disponibles. Agregue a dicha clase un método que permita 'preguntarle' a las instancias del mismo (los hilos) cuantas ocurrencias de servidores maliciosos ha encontrado o encontró.
     ```JAVA
