@@ -61,7 +61,7 @@ public class CheckSegmentHost implements Runnable{
     }
     
     /*
-    public static void main(String a[]) throws InterruptedException {
+    public static void main(String args[]) throws InterruptedException {
         CheckSegmentHost search1 = new CheckSegmentHost(20, 1000, "200.24.34.55");
         search1.ownThread.start();
         System.out.println("The host was found : "+search1.getOcurrencesCount()+" times.");
