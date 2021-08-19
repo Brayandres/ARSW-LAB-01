@@ -54,3 +54,177 @@
    +    ¿Cómo cambia la salida? ¿por qué?
 
 ## **PARTE II**
+1. Cree una clase de tipo Thread que represente el ciclo de vida de un hilo que haga la búsqueda de un segmento del conjunto de servidores disponibles. Agregue a dicha clase un método que permita 'preguntarle' a las instancias del mismo (los hilos) cuantas ocurrencias de servidores maliciosos ha encontrado o encontró.
+    ```JAVA
+        public class CheckSegmentHost implements Runnable{
+	
+        	public final Thread ownThread;
+            
+            private int start;
+            private int finish;
+            private boolean hasBeenFinalized;
+            private String ipAddress;
+            private HostBlacklistsDataSourceFacade skds;
+            private ArrayList<Integer> blackListOcurrences;
+            
+            public CheckSegmentHost(int start, int finish, String ipAddress) {
+                ownThread = new Thread(this);
+                this.start = start;
+                this.finish = finish;
+                this.ipAddress = ipAddress;
+                hasBeenFinalized = false;
+                blackListOcurrences = new ArrayList<>();
+                skds = HostBlacklistsDataSourceFacade.getInstance();
+            }
+        
+            @Override
+            public void run() {
+                for (int i = start; i <= finish; i++){
+                    if (skds.isInBlackListServer(i, ipAddress)){
+                        blackListOcurrences.add(i);
+                    }
+                }
+                synchronized (this) {
+                	hasBeenFinalized = true;
+                	notify();
+                }
+            }
+        
+            public synchronized int getOcurrencesCount() {
+            	try {
+            		while (!hasBeenFinalized) {
+            			wait();
+            		}
+            	} catch (InterruptedException e) {
+            		System.out.println(ownThread.getName()+" Interrupted...");
+            	}
+                return blackListOcurrences.size();
+            }
+        
+            public ArrayList<Integer> getBlackListOcurrences(){
+            	try {
+            		while (!hasBeenFinalized) {
+            			wait();
+            		}
+            	} catch (InterruptedException e) {
+            		System.out.println(ownThread.getName()+" Interrupted...");
+            	}
+            	return blackListOcurrences;
+            }
+        }
+    ```
+
+2. Agregue al método 'checkHost' un parámetro entero N, correspondiente al número de hilos entre los que se va a realizar la búsqueda (recuerde tener en cuenta si N es par o impar!). Modifique el código de este método para que divida el espacio de búsqueda entre las N partes indicadas, y paralelice la búsqueda a través de N hilos. Haga que dicha función espere hasta que los N hilos terminen de resolver su respectivo sub-problema, agregue las ocurrencias encontradas por cada hilo a la lista que retorna el método, y entonces calcule (sumando el total de ocurrencuas encontradas por cada hilo) si el número de ocurrencias es mayor o igual a BLACK_LIST_ALARM_COUNT. Si se da este caso, al final se DEBE reportar el host como confiable o no confiable, y mostrar el listado con los números de las listas negras respectivas.
+
+    **(Fragmento que controla la distribución de hilos según si es par o impar)**
+    ```JAVA
+        if (remainingServers == 0) {
+        	for (int i = 0; i < N; i++) {
+        		threads.add(new CheckSegmentHost((i*serversPerThread)+1, (i+1)*serversPerThread, ipaddress));
+        	}
+        }
+        else {
+        	int starterSegment;
+        	int lastSegment = 0;
+        	for (int i = 0; i < remainingServers; i++) {
+        		starterSegment = lastSegment + 1;
+        		lastSegment = starterSegment + serversPerThread;
+        		threads.add(new CheckSegmentHost(starterSegment, lastSegment, ipaddress));
+        	}
+        	starterSegment = remainingServers*(serversPerThread+1);
+        	lastSegment = starterSegment + (serversPerThread-1);
+        	for (int j = remainingServers; j < N; j++) {
+        		threads.add(new CheckSegmentHost(starterSegment, lastSegment, ipaddress));
+        		starterSegment = lastSegment + 1;
+        		lastSegment = starterSegment + (serversPerThread-1);
+        	}
+        }
+    ```
+    
+    **(Este fragmento permite que los hilos puedan iniciarse y terminar de manera simultanea)**
+    ```JAVA
+        for (CheckSegmentHost t : threads) {
+            t.ownThread.start();
+            System.out.println("Ejecutando Thread: " + t.ownThread.getName());
+        }
+
+        for (CheckSegmentHost t : threads) {
+        	try {
+            	t.ownThread.join();
+            } catch (Exception e) {
+        	    e.printStackTrace();
+            }
+            System.out.println("Terminó Thread: " + t.ownThread.getName());
+        }
+    ```
+    
+    **(Este fragmento permite agregar las ocurrencias de todos los hilos a una sola lista. También realiza la clasificación del host como *confiable* o *no confiable*)**
+    ```JAVA
+       for (CheckSegmentHost t : threads) {
+            ocurrencesCount += t.getOcurrencesCount();
+            blackListOcurrences.addAll(t.getBlackListOcurrences());
+        }
+        
+        if (ocurrencesCount >= BLACK_LIST_ALARM_COUNT){
+            skds.reportAsNotTrustworthy(ipaddress);
+        }
+        else{
+            skds.reportAsTrustworthy(ipaddress);
+        } 
+    ```
+    
+   Se sabe que el HOST 202.24.34.55 está reportado en listas negras de una forma más dispersa, y que el host 212.24.24.55 NO está en ninguna lista negra.
+   **(HOST 202.24.34.55)**
+    ```
+       The host was found in the following blacklists: [29, 10034, 20200, 31000, 70500] 
+    ```
+   **(HOST 212.24.24.55)**
+    ```
+        The host was found in the following blacklists: []
+    ```
+
+## **PARTE III**
+
+1. **VALORES DE CADA EJECUCIÓN**
+    (Los valores fueron obtenidos evaluando las ejecuciones del Host 202.24.34.55)
+    - 1 Hilo
+        ![Ejecución con 1 Hilo](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Monitor1T.JPG?raw=true)
+    - 4 Hilos (valor obtenido del Runtime, método *availableProcessors()*)
+        ![Ejecución con 1 Hilo](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Monitor4T.JPG?raw=true)
+    - 8 Hilos (2 veces *availableProcessors()*)
+        ![Ejecución con 1 Hilo](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Monitor8T.JPG?raw=true)
+    - 50 Hilos
+        ![Ejecución con 1 Hilo](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Monitor50T.JPG?raw=true)
+    - 100 Hilos
+        ![Ejecución con 1 Hilo](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Monitor100T.JPG?raw=true)
+
+2. **GRÁFICOS DE TIEMPO VS HILOS**
+    (El tiempo es el de ejecución y está en Segundos, con 3 decimales de exactitud)
+
+    - Host 200.24.34.55
+        | # HILOS | TIEMPO |
+        |---------|--------|
+        |    1    |159.142 |
+        |    4    |41.954  |
+        |    8    |21.793  |
+        |   50    |3.669   |
+        |   100   |1.932   |
+
+    - Host 202.24.34.55
+        | # HILOS | TIEMPO |
+        |---------|--------|
+        |    1    |160.186 |
+        |    4    |41.864  |
+        |    8    |21.898  |
+        |   50    |3.591   |
+        |   100   |1.876   |
+        
+    - Host 212.24.24.55
+        | # HILOS | TIEMPO |
+        |---------|--------|
+        |    1    |159.907 |
+        |    4    |42.111  |
+        |    8    |22.053  |
+        |   50    |3.683   |
+        |   100   |1.899   |
+        
