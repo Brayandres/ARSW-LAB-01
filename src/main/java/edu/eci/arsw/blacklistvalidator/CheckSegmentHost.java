@@ -15,7 +15,7 @@ public class CheckSegmentHost implements Runnable{
     private HostBlacklistsDataSourceFacade skds;
     private ArrayList<Integer> blackListOcurrences;
     
-    private CheckSegmentHost(int start, int finish, String ipAddress) {
+    public CheckSegmentHost(int start, int finish, String ipAddress) {
         ownThread = new Thread(this);
         this.start = start;
         this.finish = finish;
@@ -23,12 +23,6 @@ public class CheckSegmentHost implements Runnable{
         hasBeenFinalized = false;
         blackListOcurrences = new ArrayList<>();
         skds = HostBlacklistsDataSourceFacade.getInstance();
-    }
-    
-    public static CheckSegmentHost getInstance(int start, int finish, String ipAddress) {
-    	CheckSegmentHost me = new CheckSegmentHost(start, finish, ipAddress);
-    	me.ownThread.start();
-    	return me;
     }
 
     @Override
@@ -65,10 +59,12 @@ public class CheckSegmentHost implements Runnable{
     	}
     	return blackListOcurrences;
     }
-
+    
+    /*
     public static void main(String a[]) throws InterruptedException {
-        CheckSegmentHost search1 = CheckSegmentHost.getInstance(20, 1000, "200.24.34.55");
+        CheckSegmentHost search1 = new CheckSegmentHost(20, 1000, "200.24.34.55");
+        search1.ownThread.start();
         System.out.println("The host was found : "+search1.getOcurrencesCount()+" times.");
         System.out.println("The host was found in : "+search1.getBlackListOcurrences());
-    }
+    }*/
 }

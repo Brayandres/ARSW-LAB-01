@@ -6,6 +6,8 @@
 package edu.eci.arsw.blacklistvalidator;
 
 import edu.eci.arsw.spamkeywordsdatasource.HostBlacklistsDataSourceFacade;
+
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -29,76 +31,71 @@ public class HostBlackListsValidator {
      * @param ipaddress suspicious host's IP address.
      * @return  Blacklists numbers where the given host's IP address was found.
      */
-    public List<Integer> checkHost(String ipaddress, float N){
-
-        LinkedList<Integer> blackListOcurrences=new LinkedList<>();
-
-        int ocurrencesCount=0;
-
-        HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
-
-        int checkedListsCount=0;
-
-        float nServers = skds.getRegisteredServersCount()/N;
-
-        List<CheckSegmentHost> threads = new LinkedList<CheckSegmentHost>();
-
-        if ((nServers % 1) != 0){
-              nServers -= (nServers % 1);
-              threads.add(new CheckSegmentHost((int)(N*nServers)+1,skds.getRegisteredServersCount(), ipaddress));
+    public List<Integer> checkHost(String ipaddress, int N){
+    	
+    	int ocurrencesCount = 0;
+        LinkedList<Integer> blackListOcurrences = new LinkedList<>();
+        ArrayList<CheckSegmentHost> threads = new ArrayList<CheckSegmentHost>();
+        HostBlacklistsDataSourceFacade skds = HostBlacklistsDataSourceFacade.getInstance();
+        
+        int serversPerThread = skds.getRegisteredServersCount()/N;
+        System.out.println("serversPerThread: "+serversPerThread);
+        int remainingServers = skds.getRegisteredServersCount() - (serversPerThread*N);
+        System.out.println("remainingServers: "+remainingServers);
+        
+        if (remainingServers == 0) {
+        	for (int i = 0; i < N; i++) {
+        		threads.add(new CheckSegmentHost((i*serversPerThread)+1, (i+1)*serversPerThread, ipaddress));
+        	}
         }
-
-        for (int i=0;i<N;i++){
-              threads.add(new CheckSegmentHost((int)((i*nServers)+1),(int)((i+1)*nServers), ipaddress));
+        else {
+        	int starterSegment;
+        	int lastSegment = 0;
+        	for (int i = 0; i < remainingServers; i++) {
+        		starterSegment = lastSegment + 1;
+        		lastSegment = starterSegment + serversPerThread;
+        		threads.add(new CheckSegmentHost(starterSegment, lastSegment, ipaddress));
+        	}
+        	starterSegment = remainingServers*(serversPerThread+1);
+        	lastSegment = starterSegment + (serversPerThread-1);
+        	for (int j = remainingServers; j < N; j++) {
+        		threads.add(new CheckSegmentHost(starterSegment, lastSegment, ipaddress));
+        		starterSegment = lastSegment + 1;
+        		lastSegment = starterSegment + (serversPerThread-1);
+        	}
+        }
+        
+        for (CheckSegmentHost t : threads) {
+            t.ownThread.start();
+            System.out.println("Ejecutando Thread: " + t.ownThread.getName());
         }
 
         for (CheckSegmentHost t : threads) {
-            t.start();
-            System.out.println("Ejecutando Thread" + t);
-        }
-
-        for (CheckSegmentHost t : threads) {
-          try {
-                t.join();
-          } catch (Exception e) {
-                e.printStackTrace();
-          }
-            System.out.println("Terminó Thread" + t);
-        }
-
+        	try {
+            	t.ownThread.join();
+            } catch (Exception e) {
+        	    e.printStackTrace();
+            }
+            System.out.println("Terminó Thread: " + t.ownThread.getName());
+        }    
 
         for (CheckSegmentHost t : threads) {
             ocurrencesCount += t.getOcurrencesCount();
             blackListOcurrences.addAll(t.getBlackListOcurrences());
         }
-
-        /*
-        for (int i=0;i<skds.getRegisteredServersCount() && ocurrencesCount<BLACK_LIST_ALARM_COUNT;i++){
-            checkedListsCount++;
-
-            if (skds.isInBlackListServer(i, ipaddress)){
-
-                blackListOcurrences.add(i);
-
-                ocurrencesCount++;
-            }
-        }
-        */
-        if (ocurrencesCount>=BLACK_LIST_ALARM_COUNT){
+        
+        if (ocurrencesCount >= BLACK_LIST_ALARM_COUNT){
             skds.reportAsNotTrustworthy(ipaddress);
         }
         else{
             skds.reportAsTrustworthy(ipaddress);
-        }
-
-        //LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}", new Object[]{checkedListsCount, skds.getRegisteredServersCount()});
-
+        }                
+        
+        //LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}", new Object[]{null, skds.getRegisteredServersCount()});
+        
         return blackListOcurrences;
     }
 
-
     private static final Logger LOG = Logger.getLogger(HostBlackListsValidator.class.getName());
-
-
-
+ 
 }
