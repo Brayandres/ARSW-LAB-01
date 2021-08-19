@@ -174,6 +174,7 @@
     ```
     
    Se sabe que el HOST 202.24.34.55 está reportado en listas negras de una forma más dispersa, y que el host 212.24.24.55 NO está en ninguna lista negra.
+   
    **(HOST 202.24.34.55)**
     ```
        The host was found in the following blacklists: [29, 10034, 20200, 31000, 70500] 
@@ -186,6 +187,7 @@
 ## **PARTE III**
 
 1. **VALORES DE CADA EJECUCIÓN**
+
     (Los valores fueron obtenidos evaluando las ejecuciones del Host 202.24.34.55)
     - 1 Hilo
         ![Ejecución con 1 Hilo](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Monitor1T.JPG?raw=true)
@@ -199,6 +201,7 @@
         ![Ejecución con 1 Hilo](https://github.com/Brayandres/ARSW-LAB-01/blob/master/img/Monitor100T.JPG?raw=true)
 
 2. **GRÁFICOS DE TIEMPO VS HILOS**
+
     (El tiempo es el de ejecución y está en Segundos, con 3 decimales de exactitud)
 
     - Host 200.24.34.55
